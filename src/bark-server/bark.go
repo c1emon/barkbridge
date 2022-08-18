@@ -1,5 +1,13 @@
 package barkserver
 
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"net/http"
+)
+
 type Message struct {
 	Title             string `json:"title"`
 	Body              string `json:"body"`
@@ -14,4 +22,36 @@ type Message struct {
 	AutomaticallyCopy string `json:"automaticallyCopy,omitempty"`
 	Copy              string `json:"copy,omitempty"`
 	IsArchive         string `json:"isArchive,omitempty"`
+}
+
+func Push(server string, message Message) {
+
+	msg, err := json.Marshal(message)
+	if err != nil {
+		print("")
+	}
+
+	client := &http.Client{}
+	// Create request
+	req, err := http.NewRequest("POST", server, bytes.NewBuffer(msg))
+	if err != nil {
+		fmt.Println("Failure : ", err)
+	}
+	// Headers
+	req.Header.Add("Content-Type", "application/json; charset=utf-8")
+
+	// Fetch Request
+	resp, err := client.Do(req)
+
+	if err != nil {
+		fmt.Println("Failure : ", err)
+	}
+
+	// Read Response Body
+	respBody, _ := ioutil.ReadAll(resp.Body)
+
+	// Display Results
+	fmt.Println("response Status : ", resp.Status)
+	fmt.Println("response Headers : ", resp.Header)
+	fmt.Println("response Body : ", string(respBody))
 }
