@@ -11,27 +11,6 @@ import (
 
 var logger = logrus.New()
 
-type Level logrus.Level
-
-const (
-	PanicLevel Level = iota
-	// FatalLevel level. Logs and then calls `logger.Exit(1)`. It will exit even if the
-	// logging level is set to Panic.
-	FatalLevel
-	// ErrorLevel level. Logs. Used for errors that should definitely be noted.
-	// Commonly used for hooks to send errors to an error tracking service.
-	ErrorLevel
-	// WarnLevel level. Non-critical entries that deserve eyes.
-	WarnLevel
-	// InfoLevel level. General operational entries about what's going on inside the
-	// application.
-	InfoLevel
-	// DebugLevel level. Usually only enabled when debugging. Very verbose logging.
-	DebugLevel
-	// TraceLevel level. Designates finer-grained informational events than the Debug.
-	TraceLevel
-)
-
 var cstZone = time.FixedZone("GMT", 8*3600)
 
 // CostumeLogFormatter Custom log format definition
@@ -53,13 +32,18 @@ func (s *costumeLogFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	}
 
 	timestamp := time.Now().In(cstZone).Format("2006-01-02 15:04:05.999")
-	msg := fmt.Sprintf("%s [%s] --- %s\n", timestamp, colorFormater(strings.ToUpper(entry.Level.String())), entry.Message)
+	msg := fmt.Sprintf("%s [%s] -- %s\n", timestamp, colorFormater(strings.ToUpper(entry.Level.String())), entry.Message)
 	return []byte(msg), nil
 }
 
-func Init(level Level) {
+func Init(level string) {
+	lv, err := logrus.ParseLevel(level)
+	if err != nil {
+		logger.Fatal(err)
+	}
+
 	logger.SetFormatter(new(costumeLogFormatter))
-	logger.SetLevel(logrus.Level(level))
+	logger.SetLevel(lv)
 	Info(fmt.Sprintf("log level: %s", logger.GetLevel().String()))
 }
 

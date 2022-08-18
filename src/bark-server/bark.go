@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
+
+	"github.com/c1emon/barkbridge/src/log"
 )
 
 type Message struct {
@@ -25,7 +27,7 @@ type Message struct {
 }
 
 func Push(server string, message Message) {
-
+	log.Info()
 	msg, err := json.Marshal(message)
 	if err != nil {
 		print("")
@@ -48,7 +50,7 @@ func Push(server string, message Message) {
 	}
 
 	// Read Response Body
-	respBody, _ := ioutil.ReadAll(resp.Body)
+	respBody, _ := io.ReadAll(resp.Body)
 
 	// Display Results
 	fmt.Println("response Status : ", resp.Status)
