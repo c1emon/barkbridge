@@ -16,7 +16,12 @@ var serverCmd = &cobra.Command{
 	Use:   "server",
 	Short: "Start brak bridge server",
 	Run: func(cmd *cobra.Command, args []string) {
-		barkserver.Push("a", barkserver.Message{})
+		barkserver.Push(serverAddress, barkserver.Message{
+			Body:      "test from bridge",
+			DeviceKey: "dk",
+			Title:     "hello",
+			Category:  "category",
+		})
 	},
 }
 

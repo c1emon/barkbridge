@@ -38,8 +38,11 @@ func Push(server string, message Message) {
 		logrus.WithField("message", fmt.Sprintf("%+v", message)).Warn(err)
 		return
 	}
-	logger := logrus.WithFields(logrus.Fields{"server": server, "message": string(msg)})
-	logger.Info("send message")
+	logger := logrus.WithFields(logrus.Fields{
+		"server":     server,
+		"device_key": message.DeviceKey,
+		"title":      message.Title})
+	logger.Debug("send message")
 
 	client := &http.Client{}
 	// Create request
@@ -73,7 +76,7 @@ func Push(server string, message Message) {
 	}
 
 	if bresp.Code != 200 {
-		logger.WithField("error", bresp.Message).Warn("send faild")
+		logger.Warn(bresp.Message)
 		return
 	}
 	logger.Info("send success")
