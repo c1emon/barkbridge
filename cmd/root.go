@@ -25,22 +25,22 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/c1emon/barkbridge/ilogger"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
 var cfgFile string
+var verbosity string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "barkbridge",
-	Short: "A brief description of your application",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Message bridge for bark server",
+	Long:  `Bridge message from amqp\mqtt to a bark server`,
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		ilogger.Init(verbosity)
+	},
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	// Run: func(cmd *cobra.Command, args []string) { },
@@ -67,6 +67,9 @@ func init() {
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+
+	rootCmd.PersistentFlags().StringVarP(&verbosity, "verbosity", "v", "info", "Log level: debug, info, warn, error, fatal, panic")
+
 }
 
 // initConfig reads in config file and ENV variables if set.
