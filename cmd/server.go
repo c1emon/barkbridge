@@ -4,7 +4,7 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	barkserver "github.com/c1emon/barkbridge/src/barkserver"
+	barkserver "github.com/c1emon/barkbridge/barkserver"
 	"github.com/spf13/cobra"
 )
 
