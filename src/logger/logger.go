@@ -1,4 +1,4 @@
-package log
+package logger
 
 import (
 	"fmt"
@@ -44,33 +44,9 @@ func Init(level string) {
 
 	logger.SetFormatter(new(costumeLogFormatter))
 	logger.SetLevel(lv)
-	Info(fmt.Sprintf("log level: %s", logger.GetLevel().String()))
+	logger.Info(fmt.Sprintf("log level: %s", logger.GetLevel().String()))
 }
 
-func Panic(args ...interface{}) {
-	logger.Panic(args...)
-}
-
-func Fatal(args ...interface{}) {
-	logger.Fatal(args...)
-}
-
-func Error(args ...interface{}) {
-	logger.Error(args...)
-}
-
-func Warn(args ...interface{}) {
-	logger.Warn(args...)
-}
-
-func Info(args ...interface{}) {
-	logger.Info(args...)
-}
-
-func Debug(args ...interface{}) {
-	logger.Debug(args...)
-}
-
-func Trace(args ...interface{}) {
-	logger.Trace(args...)
+func Get() *logrus.Logger {
+	return logger
 }
