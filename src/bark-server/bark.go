@@ -7,7 +7,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/c1emon/barkbridge/src/logger"
+	"github.com/c1emon/barkbridge/ilogger"
 )
 
 type Message struct {
@@ -27,7 +27,7 @@ type Message struct {
 }
 
 func Push(server string, message Message) {
-	log := logger.Get()
+	log := ilogger.Get()
 	log.Info()
 	msg, err := json.Marshal(message)
 	if err != nil {

@@ -25,7 +25,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/c1emon/barkbridge/src/logger"
+	"github.com/c1emon/barkbridge/ilogger"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -39,7 +39,7 @@ var rootCmd = &cobra.Command{
 	Short: "Message bridge for bark server",
 	Long:  `Bridge message from amqp\mqtt to a bark server`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		logger.Init(verbosity)
+		ilogger.Init(verbosity)
 	},
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
