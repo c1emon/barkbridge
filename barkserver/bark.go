@@ -32,11 +32,11 @@ type BarkResp struct {
 	Timestamp int    `json:"timestamp"`
 }
 
-func Push(server string, message Message) {
+func Push(server string, message Message) bool {
 	msg, err := json.Marshal(message)
 	if err != nil {
 		logrus.WithField("message", fmt.Sprintf("%+v", message)).Warn(err)
-		return
+		return false
 	}
 	logger := logrus.WithFields(logrus.Fields{
 		"server":     server,
@@ -49,7 +49,7 @@ func Push(server string, message Message) {
 	req, err := http.NewRequest("POST", server, bytes.NewBuffer(msg))
 	if err != nil {
 		logger.Warn(err)
-		return
+		return false
 	}
 	// Headers
 	req.Header.Add("Content-Type", "application/json; charset=utf-8")
@@ -59,25 +59,26 @@ func Push(server string, message Message) {
 
 	if err != nil {
 		logger.Warn(err)
-		return
+		return false
 	}
 
 	// Read Response Body
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		logger.Warn(err)
-		return
+		return false
 	}
 	var bresp BarkResp
 	err = json.Unmarshal(respBody, &bresp)
 	if err != nil {
 		logger.Warn(err)
-		return
+		return false
 	}
 
 	if bresp.Code != 200 {
 		logger.Warn(bresp.Message)
-		return
+		return false
 	}
 	logger.Info("send success")
+	return true
 }
