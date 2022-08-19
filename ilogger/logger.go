@@ -9,8 +9,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var logger = logrus.New()
-
 var cstZone = time.FixedZone("GMT", 8*3600)
 
 // CostumeLogFormatter Custom log format definition
@@ -39,14 +37,10 @@ func (s *costumeLogFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 func Init(level string) {
 	lv, err := logrus.ParseLevel(level)
 	if err != nil {
-		logger.Fatal(err)
+		logrus.Fatal(err)
 	}
 
-	logger.SetFormatter(new(costumeLogFormatter))
-	logger.SetLevel(lv)
-	logger.Info(fmt.Sprintf("log level: %s", logger.GetLevel().String()))
-}
-
-func Get() *logrus.Logger {
-	return logger
+	logrus.SetFormatter(new(costumeLogFormatter))
+	logrus.SetLevel(lv)
+	logrus.Info(fmt.Sprintf("log level: %s", logrus.GetLevel().String()))
 }

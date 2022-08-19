@@ -7,7 +7,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/c1emon/barkbridge/ilogger"
+	"github.com/sirupsen/logrus"
 )
 
 type Message struct {
@@ -26,19 +26,27 @@ type Message struct {
 	IsArchive         string `json:"isArchive,omitempty"`
 }
 
+type BarkResp struct {
+	Code      int    `json:"code"`
+	Message   string `json:"message"`
+	Timestamp int    `json:"timestamp"`
+}
+
 func Push(server string, message Message) {
-	log := ilogger.Get()
-	log.Info()
 	msg, err := json.Marshal(message)
 	if err != nil {
-		print("")
+		logrus.WithField("message", fmt.Sprintf("%+v", message)).Warn(err)
+		return
 	}
+	logger := logrus.WithFields(logrus.Fields{"server": server, "message": string(msg)})
+	logger.Info("send message")
 
 	client := &http.Client{}
 	// Create request
 	req, err := http.NewRequest("POST", server, bytes.NewBuffer(msg))
 	if err != nil {
-		fmt.Println("Failure : ", err)
+		logger.Warn(err)
+		return
 	}
 	// Headers
 	req.Header.Add("Content-Type", "application/json; charset=utf-8")
@@ -47,14 +55,26 @@ func Push(server string, message Message) {
 	resp, err := client.Do(req)
 
 	if err != nil {
-		fmt.Println("Failure : ", err)
+		logger.Warn(err)
+		return
 	}
 
 	// Read Response Body
-	respBody, _ := io.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		logger.Warn(err)
+		return
+	}
+	var bresp BarkResp
+	err = json.Unmarshal(respBody, &bresp)
+	if err != nil {
+		logger.Warn(err)
+		return
+	}
 
-	// Display Results
-	fmt.Println("response Status : ", resp.Status)
-	fmt.Println("response Headers : ", resp.Header)
-	fmt.Println("response Body : ", string(respBody))
+	if bresp.Code != 200 {
+		logger.WithField("error", bresp.Message).Warn("send faild")
+		return
+	}
+	logger.Info("send success")
 }
