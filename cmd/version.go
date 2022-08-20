@@ -28,8 +28,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var Commit string
-
 // versionCmd represents the version command
 var versionCmd = &cobra.Command{
 	Use:   "version",
