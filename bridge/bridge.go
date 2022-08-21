@@ -57,21 +57,24 @@ func (b *Bridge) Server() {
 
 	}
 
-	b.wg.Add(1)
 	go func() {
 		for msg := range b.msgCh {
 			logrus.WithField("message_id", msg.Id).Info("send msg")
 			barkserver.Push(b.BarkAddress, msg)
 		}
-		b.wg.Done()
 	}()
+
+	for id, provider := range b.Providers {
+		logrus.WithField("id", id).Info("start provider")
+		provider.Start()
+	}
 
 	<-b.osSigs
 	logrus.Debug("wait for stop")
 	for _, provider := range b.Providers {
 		provider.Stop()
 	}
-	close(b.msgCh)
 	b.wg.Wait()
+	close(b.msgCh)
 
 }

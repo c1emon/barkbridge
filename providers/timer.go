@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/c1emon/barkbridge/barkserver"
+	"github.com/sirupsen/logrus"
 )
 
 type TimeProvider struct {
@@ -30,28 +31,34 @@ func (p *TimeProvider) Start() {
 	go func() {
 		i := 0
 		for {
-			_, ok := <-p.stopCh
-			if !ok {
-				break
-			}
-			time.Sleep(time.Second * time.Duration(5))
-			i++
-			p.ProvideCh <- barkserver.Message{
-				Title:     fmt.Sprintf("Test: %d", i),
-				Body:      "test from timer provider",
-				DeviceKey: "key",
-				Category:  "category",
-				Id:        fmt.Sprintf("%d", i),
-			}
-		}
-		p.wg.Done()
-	}()
 
+			select {
+			case _, ok := <-p.stopCh:
+				if !ok {
+					close(p.ProvideCh)
+					p.wg.Done()
+					return
+				}
+			default:
+				time.Sleep(time.Second * time.Duration(5))
+				i++
+				logrus.WithField("idx", i).Debug("timer provider")
+				p.ProvideCh <- barkserver.Message{
+					Title:     fmt.Sprintf("Test: %d", i),
+					Body:      "test from timer provider",
+					DeviceKey: "key",
+					Category:  "category",
+					Id:        fmt.Sprintf("%d", i),
+				}
+			}
+
+		}
+	}()
+	logrus.Info("timer provider started")
 }
 
 func (p *TimeProvider) Stop() {
 	close(p.stopCh)
-	close(p.ProvideCh)
 	p.wg.Wait()
 }
 
