@@ -7,6 +7,7 @@ import (
 	"syscall"
 
 	"github.com/c1emon/barkbridge/barkserver"
+	"github.com/sirupsen/logrus"
 )
 
 type Provider interface {
@@ -16,46 +17,57 @@ type Provider interface {
 }
 
 type Bridge struct {
-	Providers map[string]Provider
-	osSigs    chan os.Signal
-	msgCh     chan barkserver.Message
-	wg        *sync.WaitGroup
+	Providers   map[string]Provider
+	osSigs      chan os.Signal
+	msgCh       chan barkserver.Message
+	wg          *sync.WaitGroup
+	BarkAddress string
 }
 
-func New() *Bridge {
+func New(server string) *Bridge {
 	b := &Bridge{
-		Providers: nil,
-		osSigs:    make(chan os.Signal, 1),
-		msgCh:     make(chan barkserver.Message),
-		wg:        &sync.WaitGroup{},
+		Providers:   make(map[string]Provider),
+		osSigs:      make(chan os.Signal, 1),
+		msgCh:       make(chan barkserver.Message),
+		wg:          &sync.WaitGroup{},
+		BarkAddress: server,
 	}
 
 	return b
 }
 
+func (b *Bridge) AddProvider(id string, p Provider) {
+	logrus.WithField("id", id).Info("add provider")
+	b.Providers[id] = p
+}
+
 func (b *Bridge) Server() {
 	signal.Notify(b.osSigs, syscall.SIGINT, syscall.SIGTERM)
 
-	for _, provider := range b.Providers {
+	for id, provider := range b.Providers {
 		b.wg.Add(1)
-		go func(p Provider) {
+		go func(id string, p Provider) {
+			logrus.WithField("id", id).Info("start bridge provider")
 			for msg := range p.GetCh() {
 				b.msgCh <- msg
 			}
 			b.wg.Done()
-		}(provider)
+			logrus.WithField("id", id).Info("stop bridge provider")
+		}(id, provider)
 
 	}
 
 	b.wg.Add(1)
 	go func() {
 		for msg := range b.msgCh {
-			barkserver.Push("", msg)
+			logrus.WithField("message_id", msg.Id).Info("send msg")
+			barkserver.Push(b.BarkAddress, msg)
 		}
 		b.wg.Done()
 	}()
 
 	<-b.osSigs
+	logrus.Debug("wait for stop")
 	for _, provider := range b.Providers {
 		provider.Stop()
 	}

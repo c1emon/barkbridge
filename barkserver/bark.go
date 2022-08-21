@@ -24,6 +24,7 @@ type Message struct {
 	AutomaticallyCopy string `json:"automaticallyCopy,omitempty"`
 	Copy              string `json:"copy,omitempty"`
 	IsArchive         string `json:"isArchive,omitempty"`
+	Id                string `json:"-"`
 }
 
 type BarkResp struct {
@@ -43,6 +44,8 @@ func Push(server string, message Message) bool {
 		"device_key": message.DeviceKey,
 		"title":      message.Title})
 	logger.Debug("send message")
+
+	return true
 
 	client := &http.Client{}
 	// Create request

@@ -22,24 +22,26 @@ THE SOFTWARE.
 package cmd
 
 import (
-	barkserver "github.com/c1emon/barkbridge/barkserver"
+	"github.com/c1emon/barkbridge/bridge"
+	"github.com/c1emon/barkbridge/providers"
 	"github.com/spf13/cobra"
 )
 
 var serverAddress string
-var daemon bool
+
+// var daemon bool
 
 // serverCmd represents the server command
 var serverCmd = &cobra.Command{
 	Use:   "server",
 	Short: "Start brak bridge server",
 	Run: func(cmd *cobra.Command, args []string) {
-		barkserver.Push(serverAddress, barkserver.Message{
-			Body:      "test from bridge",
-			DeviceKey: "dk",
-			Title:     "hello",
-			Category:  "category",
-		})
+
+		timeProvider := providers.NewTimeProvider()
+
+		b := bridge.New(serverAddress)
+		b.AddProvider("timer", timeProvider)
+		b.Server()
 	},
 }
 
@@ -52,7 +54,7 @@ func init() {
 	// and all subcommands, e.g.:
 	// serverCmd.PersistentFlags().String("foo", "", "A help for foo")
 	serverCmd.PersistentFlags().StringVarP(&serverAddress, "bark-server", "a", "http://127.0.0.1:8080", "Bark server address")
-	serverCmd.PersistentFlags().BoolVarP(&daemon, "daemon", "d", false, "Server in daemon mode")
+	// serverCmd.PersistentFlags().BoolVarP(&daemon, "daemon", "d", false, "Server in daemon mode")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:

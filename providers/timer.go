@@ -14,7 +14,7 @@ type TimeProvider struct {
 	wg        *sync.WaitGroup
 }
 
-func GetTimeProvider() *TimeProvider {
+func NewTimeProvider() *TimeProvider {
 	p := &TimeProvider{
 		wg:        &sync.WaitGroup{},
 		ProvideCh: make(chan barkserver.Message),
@@ -41,6 +41,7 @@ func (p *TimeProvider) Start() {
 				Body:      "test from timer provider",
 				DeviceKey: "key",
 				Category:  "category",
+				Id:        fmt.Sprintf("%d", i),
 			}
 		}
 		p.wg.Done()
@@ -50,6 +51,7 @@ func (p *TimeProvider) Start() {
 
 func (p *TimeProvider) Stop() {
 	close(p.stopCh)
+	close(p.ProvideCh)
 	p.wg.Wait()
 }
 
