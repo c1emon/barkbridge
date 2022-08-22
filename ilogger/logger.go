@@ -31,11 +31,13 @@ func (s *costumeLogFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	}
 
 	timestamp := time.Now().In(cstZone).Format("2006-01-02 15:04:05.999")
-	msg := fmt.Sprintf("%s [%s] -- %s\nwith values:\n%s\n",
+	msg := fmt.Sprintf("%s [%s] -- %s\n",
 		timestamp,
 		colorFormater(strings.ToUpper(entry.Level.String())),
-		entry.Message,
-		utils.PrettyMarshal(entry.Data))
+		entry.Message)
+	if entry.Data != nil && len(entry.Data) > 0 {
+		msg = fmt.Sprintf("%swith values:\n%s\n", msg, utils.PrettyMarshal(entry.Data))
+	}
 
 	return []byte(msg), nil
 }
