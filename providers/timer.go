@@ -3,9 +3,9 @@ package providers
 import (
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/c1emon/barkbridge/barkserver"
+	"github.com/robfig/cron/v3"
 	"github.com/sirupsen/logrus"
 )
 
@@ -30,29 +30,29 @@ func (p *TimeProvider) Start() {
 	p.wg.Add(1)
 	go func() {
 		i := 0
-		for {
+		c := cron.New(cron.WithSeconds())
 
-			select {
-			case _, ok := <-p.stopCh:
-				if !ok {
-					close(p.ProvideCh)
-					p.wg.Done()
-					return
-				}
-			default:
-				time.Sleep(time.Second * time.Duration(5))
-				i++
-				logrus.WithField("idx", i).Debug("timer provider")
-				p.ProvideCh <- barkserver.Message{
-					Title:     fmt.Sprintf("Test: %d", i),
-					Body:      "test from timer provider",
-					DeviceKey: "key",
-					Category:  "category",
-					Id:        fmt.Sprintf("%d", i),
-				}
+		c.AddFunc("*/2 * * * * ?", func() {
+			i++
+			logrus.WithField("idx", i).Debug("timer provider")
+			p.ProvideCh <- barkserver.Message{
+				Title:     fmt.Sprintf("Test: %d", i),
+				Body:      "test from timer provider",
+				DeviceKey: "key",
+				Category:  "category",
+				Id:        fmt.Sprintf("%d", i),
 			}
+		})
+
+		c.Start()
+
+		for _ = range p.stopCh {
 
 		}
+		c.Stop()
+		close(p.ProvideCh)
+		p.wg.Done()
+		logrus.Info("timer provider exit")
 	}()
 	logrus.Info("timer provider started")
 }
