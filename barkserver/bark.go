@@ -45,8 +45,6 @@ func Push(server string, message Message) bool {
 		"title":      message.Title})
 	logger.Debug("send message")
 
-	return true
-
 	client := &http.Client{}
 	// Create request
 	req, err := http.NewRequest("POST", server, bytes.NewBuffer(msg))
