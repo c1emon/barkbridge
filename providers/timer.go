@@ -9,6 +9,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+var NAME string = "TimeProvider"
+
 type TimeProvider struct {
 	ProvideCh chan barkserver.Message
 	stopCh    chan any
@@ -47,7 +49,6 @@ func (p *TimeProvider) Start() {
 		c.Start()
 
 		for _ = range p.stopCh {
-
 		}
 		c.Stop()
 		close(p.ProvideCh)
@@ -65,4 +66,8 @@ func (p *TimeProvider) Stop() {
 func (p *TimeProvider) GetCh() <-chan barkserver.Message {
 
 	return p.ProvideCh
+}
+
+func (p *TimeProvider) GetName() string {
+	return NAME
 }
