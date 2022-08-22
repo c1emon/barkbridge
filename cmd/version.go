@@ -23,6 +23,7 @@ package cmd
 
 import (
 	"fmt"
+	"runtime/debug"
 
 	"github.com/spf13/cobra"
 )
@@ -32,7 +33,8 @@ var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Show version",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Version: 0.1-dev")
+		i, _ := debug.ReadBuildInfo()
+		fmt.Println(i.Settings)
 	},
 }
 

@@ -24,6 +24,7 @@ type Message struct {
 	AutomaticallyCopy string `json:"automaticallyCopy,omitempty"`
 	Copy              string `json:"copy,omitempty"`
 	IsArchive         string `json:"isArchive,omitempty"`
+	Id                string `json:"-"`
 }
 
 type BarkResp struct {
