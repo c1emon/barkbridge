@@ -6,6 +6,7 @@ import (
 )
 
 func Dail() {
-	amqp.Dial("")
+	// amqp.Dial("")
 	logrus.Debug()
+	amqp.Dial("")
 }
