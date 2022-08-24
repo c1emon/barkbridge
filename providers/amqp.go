@@ -5,6 +5,7 @@ import (
 
 	"github.com/c1emon/barkbridge/barkserver"
 	amqp "github.com/rabbitmq/amqp091-go"
+	"github.com/sirupsen/logrus"
 )
 
 type AmqpProvider struct {
@@ -14,8 +15,84 @@ type AmqpProvider struct {
 	wg        *sync.WaitGroup
 }
 
+func NewAmqpProvider(addr string) *AmqpProvider {
+	p := &AmqpProvider{
+		Addr:      addr,
+		wg:        &sync.WaitGroup{},
+		ProvideCh: make(chan barkserver.Message),
+		stopCh:    make(chan any),
+	}
+
+	return p
+}
+
 func (p *AmqpProvider) Start() {
-	amqp.Dial(p.Addr)
+	conn, err := amqp.Dial(p.Addr)
+	if err != nil {
+		logrus.WithField("addr", p.Addr).Panic("failed dial amqp server")
+	}
+	ch, err := conn.Channel()
+	if err != nil {
+		logrus.WithField("addr", p.Addr).Fatal("failed open channel")
+	}
+
+	exName := "mqtt"
+	err = ch.ExchangeDeclare(
+		exName,
+		"fanout",
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+	if err != nil {
+		logrus.WithField("exchange", exName).Fatal("failed connect exchaneg")
+	}
+
+	q, err := ch.QueueDeclare(
+		"name",
+		true,
+		false,
+		true,
+		false,
+		nil,
+	)
+	if err != nil {
+		logrus.WithField("queue", "").Fatal("")
+	}
+
+	err = ch.QueueBind(
+		q.Name, // queue name
+		"",     // routing key
+		exName, // exchange
+		false,
+		nil,
+	)
+	if err != nil {
+		logrus.WithField("", "").Fatal("")
+	}
+
+	msgCh, err := ch.Consume(
+		q.Name,
+		"",    // consumer
+		true,  // auto-ack
+		false, // exclusive
+		false, // no-local
+		false, // no-wait
+		nil,   // args
+	)
+	if err != nil {
+		logrus.WithField("", "").Fatal("")
+	}
+
+	go func() {
+		for msg := range msgCh {
+			logrus.Debug(msg)
+		}
+	}()
+
+	logrus.Info("start provider")
 }
 
 func (p *AmqpProvider) Stop() {
@@ -24,10 +101,9 @@ func (p *AmqpProvider) Stop() {
 }
 
 func (p *AmqpProvider) GetCh() <-chan barkserver.Message {
-
 	return p.ProvideCh
 }
 
 func (p *AmqpProvider) GetName() string {
-	return ""
+	return "AmqpProvider"
 }
