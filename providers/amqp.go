@@ -86,10 +86,26 @@ func (p *AmqpProvider) Start() {
 		logrus.WithField("", "").Fatal("")
 	}
 
+	p.wg.Add(1)
 	go func() {
-		for msg := range msgCh {
-			logrus.Debug(msg)
+
+		for {
+			select {
+			case msg := <-msgCh:
+				logrus.Info(msg)
+				p.ProvideCh <- barkserver.Message{}
+			case _, ok := <-p.stopCh:
+				if !ok {
+					ch.Close()
+					conn.Close()
+					close(p.ProvideCh)
+					p.wg.Done()
+					logrus.Info("exit")
+					return
+				}
+			}
 		}
+
 	}()
 
 	logrus.Info("start provider")
