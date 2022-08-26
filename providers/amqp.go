@@ -1,6 +1,7 @@
 package providers
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/c1emon/barkbridge/barkserver"
@@ -29,17 +30,17 @@ func NewAmqpProvider(addr string) *AmqpProvider {
 func (p *AmqpProvider) Start() {
 	conn, err := amqp.Dial(p.Addr)
 	if err != nil {
-		logrus.WithField("addr", p.Addr).Panic("failed dial amqp server")
+		logrus.WithField("error", err).Panic("failed dial amqp server")
 	}
 	ch, err := conn.Channel()
 	if err != nil {
-		logrus.WithField("addr", p.Addr).Fatal("failed open channel")
+		logrus.WithField("error", err).Fatal("failed open channel")
 	}
 
-	exName := "mqtt"
+	exName := "amp.topic"
 	err = ch.ExchangeDeclare(
 		exName,
-		"fanout",
+		"topic",
 		true,
 		false,
 		false,
@@ -47,43 +48,43 @@ func (p *AmqpProvider) Start() {
 		nil,
 	)
 	if err != nil {
-		logrus.WithField("exchange", exName).Fatal("failed connect exchaneg")
+		logrus.WithField("error", err).Fatal("failed declare Exchange")
 	}
 
 	q, err := ch.QueueDeclare(
-		"name",
+		"bark-bridge",
 		true,
-		false,
+		true,
 		true,
 		false,
 		nil,
 	)
 	if err != nil {
-		logrus.WithField("queue", "").Fatal("")
+		logrus.WithField("error", err).Fatal("failed declare queue")
 	}
 
 	err = ch.QueueBind(
-		q.Name, // queue name
-		"",     // routing key
-		exName, // exchange
+		q.Name,               // queue name
+		"dev/iot/sms/upload", // routing key
+		exName,               // exchange
 		false,
 		nil,
 	)
 	if err != nil {
-		logrus.WithField("", "").Fatal("")
+		logrus.WithField("error", err).Fatal("failed bind queue")
 	}
 
 	msgCh, err := ch.Consume(
 		q.Name,
-		"",    // consumer
-		true,  // auto-ack
-		false, // exclusive
-		false, // no-local
-		false, // no-wait
-		nil,   // args
+		"bark-bridge", // consumer
+		true,          // auto-ack
+		false,         // exclusive
+		false,         // no-local
+		false,         // no-wait
+		nil,           // args
 	)
 	if err != nil {
-		logrus.WithField("", "").Fatal("")
+		logrus.WithField("error", err).Fatal("failed create consume chan")
 	}
 
 	p.wg.Add(1)
@@ -93,14 +94,14 @@ func (p *AmqpProvider) Start() {
 			select {
 			case msg := <-msgCh:
 				logrus.Info(msg)
-				p.ProvideCh <- barkserver.Message{}
+				// p.ProvideCh <- barkserver.Message{}
 			case _, ok := <-p.stopCh:
 				if !ok {
 					ch.Close()
 					conn.Close()
 					close(p.ProvideCh)
 					p.wg.Done()
-					logrus.Info("exit")
+					logrus.Info(fmt.Sprintf("exit %s", p.GetName()))
 					return
 				}
 			}
@@ -108,7 +109,7 @@ func (p *AmqpProvider) Start() {
 
 	}()
 
-	logrus.Info("start provider")
+	logrus.Info(fmt.Sprintf("start %s", p.GetName()))
 }
 
 func (p *AmqpProvider) Stop() {

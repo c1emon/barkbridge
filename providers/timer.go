@@ -51,9 +51,9 @@ func (p *TimeProvider) Start() {
 		c.Stop()
 		close(p.ProvideCh)
 		p.wg.Done()
-		logrus.Info("timer provider exit")
+		logrus.Info(fmt.Sprintf("exit %s", p.GetName()))
 	}()
-	logrus.Info("timer provider started")
+	logrus.Info(fmt.Sprintf("start %s", p.GetName()))
 }
 
 func (p *TimeProvider) Stop() {
