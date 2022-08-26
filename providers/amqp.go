@@ -37,7 +37,7 @@ func (p *AmqpProvider) Start() {
 		logrus.WithField("error", err).Fatal("failed open channel")
 	}
 
-	exName := "amp.topic"
+	exName := "amq.topic"
 	err = ch.ExchangeDeclare(
 		exName,
 		"topic",
@@ -64,9 +64,9 @@ func (p *AmqpProvider) Start() {
 	}
 
 	err = ch.QueueBind(
-		q.Name,               // queue name
-		"dev/iot/sms/upload", // routing key
-		exName,               // exchange
+		q.Name,             // queue name
+		"*.iot.sms.upload", // routing key
+		exName,             // exchange
 		false,
 		nil,
 	)
@@ -93,7 +93,7 @@ func (p *AmqpProvider) Start() {
 		for {
 			select {
 			case msg := <-msgCh:
-				logrus.Info(msg)
+				logrus.Info(string(msg.Body))
 				// p.ProvideCh <- barkserver.Message{}
 			case _, ok := <-p.stopCh:
 				if !ok {
