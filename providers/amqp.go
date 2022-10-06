@@ -1,6 +1,7 @@
 package providers
 
 import (
+	"encoding/json"
 	"fmt"
 	"sync"
 
@@ -14,7 +15,11 @@ type AmqpProvider struct {
 	ProvideCh chan barkserver.Message
 	stopCh    chan any
 	wg        *sync.WaitGroup
+	name      string
 	conf      *AmqpConf
+	conn      *amqp.Connection
+	ch        *amqp.Channel
+	msgCh     <-chan amqp.Delivery
 }
 
 type AmqpConf struct {
@@ -31,15 +36,16 @@ func NewAmqpProvider(conf *AmqpConf) *AmqpProvider {
 		ProvideCh: make(chan barkserver.Message),
 		stopCh:    make(chan any),
 		conf:      conf,
+		name:      fmt.Sprintf("amqp-provider-%s", utils.RandStr(5)),
 	}
 
 	return p
 }
 
-func (p *AmqpProvider) Start() {
+func (p *AmqpProvider) prepare() {
 	conn, err := amqp.Dial(p.conf.Addr)
 	if err != nil {
-		logrus.WithField("error", err).Panic("failed dial amqp server")
+		logrus.WithField("error", err).Fatal("failed dial amqp server")
 	}
 	ch, err := conn.Channel()
 	if err != nil {
@@ -95,15 +101,30 @@ func (p *AmqpProvider) Start() {
 		logrus.WithField("error", err).Fatal("failed create consume chan")
 	}
 
+	p.conn = conn
+	p.ch = ch
+	p.msgCh = msgCh
+
+}
+
+func (p *AmqpProvider) Start() {
+	p.prepare()
+
 	p.wg.Add(1)
 	go func() {
-		defer conn.Close()
-		defer ch.Close()
+		defer p.conn.Close()
+		defer p.ch.Close()
 		for {
 			select {
-			case msg := <-msgCh:
-				logrus.Info(string(msg.Body))
-				// p.ProvideCh <- barkserver.Message{}
+			case msg := <-p.msgCh:
+				logrus.Debug(fmt.Sprintf("amqp msg:\n%s", string(msg.Body)))
+				m := barkserver.Message{}
+				err := json.Unmarshal(msg.Body, &m)
+				if err != nil {
+					logrus.Warn(fmt.Sprintf("unmarshal err: %s", err))
+					continue
+				}
+				p.ProvideCh <- m
 			case _, ok := <-p.stopCh:
 				if !ok {
 					close(p.ProvideCh)
@@ -129,5 +150,5 @@ func (p *AmqpProvider) GetCh() <-chan barkserver.Message {
 }
 
 func (p *AmqpProvider) GetName() string {
-	return "AmqpProvider"
+	return p.name
 }
