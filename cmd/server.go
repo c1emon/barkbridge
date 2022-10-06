@@ -28,33 +28,40 @@ import (
 )
 
 var serverAddress string
+var conf providers.AmqpConf
 
-// var daemon bool
+var amqpEnabled bool
 
 // serverCmd represents the server command
 var serverCmd = &cobra.Command{
 	Use:   "server",
 	Short: "Start brak bridge server",
 	Run: func(cmd *cobra.Command, args []string) {
-
-		timeProvider := providers.NewTimeProvider()
-
 		b := bridge.New(serverAddress)
-		b.AddProvider("timer", timeProvider)
+		if amqpEnabled {
+			amqpProvider := providers.NewAmqpProvider(&conf)
+			b.AddProvider("amqpProvider", amqpProvider)
+		}
 		b.Server()
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(serverCmd)
+	serverCmd.PersistentFlags().StringVarP(&serverAddress, "server", "b", "http://127.0.0.1:8080", "bark server address")
 
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
 	// serverCmd.PersistentFlags().String("foo", "", "A help for foo")
-	serverCmd.PersistentFlags().StringVarP(&serverAddress, "bark-server", "a", "http://127.0.0.1:8080", "Bark server address")
-	// serverCmd.PersistentFlags().BoolVarP(&daemon, "daemon", "d", false, "Server in daemon mode")
+
+	serverCmd.PersistentFlags().BoolVar(&amqpEnabled, "amqp", false, "enable amqp provider")
+	serverCmd.PersistentFlags().StringVar(&conf.Addr, "amqp.address", "amqp://user:pass@127.0.0.1:5672", "amqp server address")
+	serverCmd.PersistentFlags().StringVar(&conf.Exchange, "amqp.exchange", "amq.topic", "amqp exchange name")
+	serverCmd.PersistentFlags().StringVar(&conf.Queue, "amqp.queue", "bark-bridge", "amqp queue name")
+	serverCmd.PersistentFlags().StringVar(&conf.RoutingKey, "amqp.routingkey", "iot.sms.upload", "amqp routing key")
+	serverCmd.MarkFlagsRequiredTogether("amqp", "amqp.address", "amqp.exchange", "amqp.queue", "amqp.routingkey")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
