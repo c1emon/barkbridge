@@ -5,30 +5,39 @@ import (
 	"sync"
 
 	"github.com/c1emon/barkbridge/barkserver"
+	"github.com/c1emon/barkbridge/utils"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/sirupsen/logrus"
 )
 
 type AmqpProvider struct {
-	Addr      string
 	ProvideCh chan barkserver.Message
 	stopCh    chan any
 	wg        *sync.WaitGroup
+	conf      *AmqpConf
 }
 
-func NewAmqpProvider(addr string) *AmqpProvider {
+type AmqpConf struct {
+	Addr       string
+	Exchange   string
+	Queue      string
+	Topic      string
+	RoutingKey string
+}
+
+func NewAmqpProvider(conf *AmqpConf) *AmqpProvider {
 	p := &AmqpProvider{
-		Addr:      addr,
 		wg:        &sync.WaitGroup{},
 		ProvideCh: make(chan barkserver.Message),
 		stopCh:    make(chan any),
+		conf:      conf,
 	}
 
 	return p
 }
 
 func (p *AmqpProvider) Start() {
-	conn, err := amqp.Dial(p.Addr)
+	conn, err := amqp.Dial(p.conf.Addr)
 	if err != nil {
 		logrus.WithField("error", err).Panic("failed dial amqp server")
 	}
@@ -37,9 +46,8 @@ func (p *AmqpProvider) Start() {
 		logrus.WithField("error", err).Fatal("failed open channel")
 	}
 
-	exName := "amq.topic"
 	err = ch.ExchangeDeclare(
-		exName,
+		p.conf.Exchange,
 		"topic",
 		true,
 		false,
@@ -52,7 +60,7 @@ func (p *AmqpProvider) Start() {
 	}
 
 	q, err := ch.QueueDeclare(
-		"bark-bridge",
+		p.conf.Queue,
 		true,
 		true,
 		true,
@@ -64,9 +72,9 @@ func (p *AmqpProvider) Start() {
 	}
 
 	err = ch.QueueBind(
-		q.Name,             // queue name
-		"*.iot.sms.upload", // routing key
-		exName,             // exchange
+		q.Name,            // queue name
+		p.conf.RoutingKey, // routing key
+		p.conf.Exchange,   // exchange
 		false,
 		nil,
 	)
@@ -76,12 +84,12 @@ func (p *AmqpProvider) Start() {
 
 	msgCh, err := ch.Consume(
 		q.Name,
-		"bark-bridge", // consumer
-		true,          // auto-ack
-		false,         // exclusive
-		false,         // no-local
-		false,         // no-wait
-		nil,           // args
+		fmt.Sprintf("bark-bridge-%s", utils.RandStr(5)), // consumer
+		true,  // auto-ack
+		false, // exclusive
+		false, // no-local
+		false, // no-wait
+		nil,   // args
 	)
 	if err != nil {
 		logrus.WithField("error", err).Fatal("failed create consume chan")
@@ -89,7 +97,8 @@ func (p *AmqpProvider) Start() {
 
 	p.wg.Add(1)
 	go func() {
-
+		defer conn.Close()
+		defer ch.Close()
 		for {
 			select {
 			case msg := <-msgCh:
@@ -97,8 +106,6 @@ func (p *AmqpProvider) Start() {
 				// p.ProvideCh <- barkserver.Message{}
 			case _, ok := <-p.stopCh:
 				if !ok {
-					ch.Close()
-					conn.Close()
 					close(p.ProvideCh)
 					p.wg.Done()
 					logrus.Info(fmt.Sprintf("exit %s", p.GetName()))
