@@ -2,7 +2,6 @@ package providers
 
 import (
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/c1emon/barkbridge/barkserver"
@@ -13,22 +12,19 @@ import (
 
 type TimeProvider struct {
 	ProvideCh chan barkserver.Message
-	stopCh    chan any
-	wg        *sync.WaitGroup
 	name      string
-	cron      string
+	cronExp   string
 	body      string
 	title     string
 	devicekey string
+	cron      *cron.Cron
 }
 
 func NewTimeProvider(body, title, devicekey, cron string) *TimeProvider {
 	p := &TimeProvider{
-		wg:        &sync.WaitGroup{},
 		ProvideCh: make(chan barkserver.Message),
-		stopCh:    make(chan any),
 		name:      fmt.Sprintf("timer-provider-%s", utils.RandStr(5)),
-		cron:      cron,
+		cronExp:   cron,
 		body:      body,
 		title:     title,
 		devicekey: devicekey,
@@ -37,44 +33,39 @@ func NewTimeProvider(body, title, devicekey, cron string) *TimeProvider {
 	return p
 }
 
-func (p *TimeProvider) Start() {
+func (p *TimeProvider) prepare() {
+	c := cron.New(cron.WithSeconds())
 
-	p.wg.Add(1)
-	go func() {
+	c.AddFunc(p.cronExp, func() {
 
-		c := cron.New(cron.WithSeconds())
-
-		c.AddFunc(p.cron, func() {
-
-			logrus.WithField("name", p.name).Debug("timer provider")
-			p.ProvideCh <- barkserver.Message{
-				Title:     p.title,
-				Body:      p.title,
-				DeviceKey: p.devicekey,
-				Category:  "category",
-				Id:        time.Now().Format("2006-01-02 15:04:05"),
-			}
-		})
-
-		c.Start()
-
-		for range p.stopCh {
+		logrus.WithField("name", p.name).Debug("timer provider")
+		p.ProvideCh <- barkserver.Message{
+			Title:     p.title,
+			Body:      p.title,
+			DeviceKey: p.devicekey,
+			Category:  "category",
+			Id:        time.Now().Format("2006-01-02 15:04:05"),
 		}
-		c.Stop()
-		close(p.ProvideCh)
-		p.wg.Done()
-		logrus.Info(fmt.Sprintf("exit %s", p.GetName()))
-	}()
+	})
+
+	p.cron = c
+}
+
+func (p *TimeProvider) Start() {
+	p.prepare()
+
+	p.cron.Start()
 	logrus.Info(fmt.Sprintf("start %s", p.GetName()))
 }
 
 func (p *TimeProvider) Stop() {
-	close(p.stopCh)
-	p.wg.Wait()
+	p.cron.Stop()
+	close(p.ProvideCh)
+
+	logrus.Info(fmt.Sprintf("exit %s", p.GetName()))
 }
 
 func (p *TimeProvider) GetCh() <-chan barkserver.Message {
-
 	return p.ProvideCh
 }
 
