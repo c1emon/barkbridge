@@ -28,9 +28,15 @@ import (
 )
 
 var serverAddress string
-var conf providers.AmqpConf
 
 var amqpEnabled bool
+var conf providers.AmqpConf
+
+var timerEnabled bool
+var body string
+var title string
+var devicekey string
+var cron string
 
 // serverCmd represents the server command
 var serverCmd = &cobra.Command{
@@ -41,6 +47,10 @@ var serverCmd = &cobra.Command{
 		if amqpEnabled {
 			amqpProvider := providers.NewAmqpProvider(&conf)
 			b.AddProvider("amqpProvider", amqpProvider)
+		}
+		if timerEnabled {
+			timerProvider := providers.NewTimeProvider(body, title, devicekey, cron)
+			b.AddProvider("timerProvider", timerProvider)
 		}
 		b.Server()
 	},
@@ -56,12 +66,18 @@ func init() {
 	// and all subcommands, e.g.:
 	// serverCmd.PersistentFlags().String("foo", "", "A help for foo")
 
+	serverCmd.PersistentFlags().BoolVar(&timerEnabled, "timer", false, "enable timer provider")
+	serverCmd.PersistentFlags().StringVar(&cron, "timer.cron", "*/2 * * * * ?", "cron exp")
+	serverCmd.PersistentFlags().StringVar(&title, "timer.title", "Hello world", "message title")
+	serverCmd.PersistentFlags().StringVar(&body, "timer.body", "From timer provider of bark bridge", "message body")
+	serverCmd.PersistentFlags().StringVar(&devicekey, "timer.deviceKey", "", "bark device key")
+
 	serverCmd.PersistentFlags().BoolVar(&amqpEnabled, "amqp", false, "enable amqp provider")
 	serverCmd.PersistentFlags().StringVar(&conf.Addr, "amqp.address", "amqp://user:pass@127.0.0.1:5672", "amqp server address")
 	serverCmd.PersistentFlags().StringVar(&conf.Exchange, "amqp.exchange", "amq.topic", "amqp exchange name")
 	serverCmd.PersistentFlags().StringVar(&conf.Queue, "amqp.queue", "bark-bridge", "amqp queue name")
 	serverCmd.PersistentFlags().StringVar(&conf.RoutingKey, "amqp.routingkey", "iot.sms.upload", "amqp routing key")
-	serverCmd.MarkFlagsRequiredTogether("amqp", "amqp.address", "amqp.exchange", "amqp.queue", "amqp.routingkey")
+	// serverCmd.MarkFlagsRequiredTogether("amqp", "amqp.address", "amqp.exchange", "amqp.queue", "amqp.routingkey")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
