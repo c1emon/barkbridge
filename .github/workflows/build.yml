@@ -1,25 +1,26 @@
-name: Go
+name: Build Release
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    tags:
+      - "v*"
 
 jobs:
-
-  build:
+  release:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-
+    - name: Docker meta
+      id: meta
+      uses: docker/metadata-action@v4
+      with:
+        images: ${{ secrets.DOCKERHUB_USERNAME }}/barkbridge
     - name: Set up Go
       uses: actions/setup-go@v3
       with:
-        go-version: 1.19
-
+        go-version-file: 'go.mod'
     - name: Build
-      run: go build main.go
+      run: go build main.go -o barkbridge
 
 #     - name: Test
 #       run: go test -v ./...
@@ -36,6 +37,6 @@ jobs:
       id: docker_build
       with:
         context: .
-        push: true
-        tags: ${{ secrets.DOCKERHUB_USERNAME }}/barkbridge:latest
-
+        push: ${{ github.event_name != 'pull_request' }}
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
