@@ -1,5 +1,5 @@
 FROM alpine
 
+COPY barkbridge /barkbridge
 
-
-CMD ["barkbridge", "server"]
+ENTRYPOINT [ "/barkbridge" ]
