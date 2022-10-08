@@ -39,17 +39,18 @@ func Push(server string, message Message) bool {
 		logrus.WithField("message", fmt.Sprintf("%+v", message)).Warn(err)
 		return false
 	}
-	logger := logrus.WithFields(logrus.Fields{
-		"server":     server,
-		"device_key": message.DeviceKey,
-		"title":      message.Title})
-	logger.Debug("send message")
+
+	logrus.WithFields(logrus.Fields{
+		"bark endpont":  server,
+		"device key":    message.DeviceKey,
+		"message title": message.Title,
+	}).Debug("send message")
 
 	client := &http.Client{}
 	// Create request
 	req, err := http.NewRequest("POST", server, bytes.NewBuffer(msg))
 	if err != nil {
-		logger.Warn(err)
+		logrus.Warn(fmt.Sprintf("failed new request: %s", err))
 		return false
 	}
 	// Headers
@@ -59,27 +60,27 @@ func Push(server string, message Message) bool {
 	resp, err := client.Do(req)
 
 	if err != nil {
-		logger.Warn(err)
+		logrus.Warn(fmt.Sprintf("failed do request: %s", err))
 		return false
 	}
 
 	// Read Response Body
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		logger.Warn(err)
+		logrus.Warn(fmt.Sprintf("failed read response body: %s", err))
 		return false
 	}
 	var bresp BarkResp
 	err = json.Unmarshal(respBody, &bresp)
 	if err != nil {
-		logger.Warn(err)
+		logrus.Warn(fmt.Sprintf("failed unmarshal response: %s\n%s", err, string(respBody)))
 		return false
 	}
 
 	if bresp.Code != 200 {
-		logger.Warn(bresp.Message)
+		logrus.Warn(fmt.Sprintf("bad response code %d:\n%s", bresp.Code, bresp.Message))
 		return false
 	}
-	logger.Info("send success")
+	logrus.Info("send success")
 	return true
 }

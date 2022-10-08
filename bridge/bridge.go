@@ -18,20 +18,20 @@ type Provider interface {
 }
 
 type Bridge struct {
-	Providers   map[string]Provider
-	osSigs      chan os.Signal
-	msgCh       chan barkserver.Message
-	wg          *sync.WaitGroup
-	BarkAddress string
+	Providers    map[string]Provider
+	osSigs       chan os.Signal
+	msgCh        chan barkserver.Message
+	wg           *sync.WaitGroup
+	BarkEndpoint string
 }
 
 func New(server string) *Bridge {
 	b := &Bridge{
-		Providers:   make(map[string]Provider),
-		osSigs:      make(chan os.Signal, 1),
-		msgCh:       make(chan barkserver.Message),
-		wg:          &sync.WaitGroup{},
-		BarkAddress: server,
+		Providers:    make(map[string]Provider),
+		osSigs:       make(chan os.Signal, 1),
+		msgCh:        make(chan barkserver.Message),
+		wg:           &sync.WaitGroup{},
+		BarkEndpoint: server,
 	}
 
 	return b
@@ -67,7 +67,7 @@ func (b *Bridge) Server() {
 				"id":    msg.Id,
 				"title": msg.Title,
 			}).Info("bridge message")
-			barkserver.Push(b.BarkAddress, msg)
+			barkserver.Push(b.BarkEndpoint, msg)
 		}
 	}()
 
