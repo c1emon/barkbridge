@@ -20,7 +20,7 @@ jobs:
       with:
         go-version-file: 'go.mod'
     - name: Build
-      run: go build main.go -o barkbridge
+      run: go build -o barkbridge main.go
 
 #     - name: Test
 #       run: go test -v ./...
