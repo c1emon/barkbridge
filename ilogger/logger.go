@@ -36,7 +36,7 @@ func (s *costumeLogFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 		colorFormater(strings.ToUpper(entry.Level.String())),
 		entry.Message)
 	if entry.Data != nil && len(entry.Data) > 0 {
-		msg = fmt.Sprintf("%swith values:\n%s\n", msg, utils.PrettyMarshal(entry.Data))
+		msg = fmt.Sprintf("%s\n%s\n", msg, utils.PrettyMarshal(entry.Data))
 	}
 
 	return []byte(msg), nil

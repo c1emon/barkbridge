@@ -27,7 +27,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var serverAddress string
+var barkEndpoint string
 
 var amqpEnabled bool
 var conf providers.AmqpConf
@@ -43,7 +43,8 @@ var serverCmd = &cobra.Command{
 	Use:   "server",
 	Short: "Start brak bridge server",
 	Run: func(cmd *cobra.Command, args []string) {
-		b := bridge.New(serverAddress)
+
+		b := bridge.New(barkEndpoint)
 		if amqpEnabled {
 			amqpProvider := providers.NewAmqpProvider(&conf)
 			b.AddProvider("amqpProvider", amqpProvider)
@@ -58,7 +59,7 @@ var serverCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(serverCmd)
-	serverCmd.PersistentFlags().StringVarP(&serverAddress, "server", "b", "http://127.0.0.1:8080", "bark server address")
+	serverCmd.PersistentFlags().StringVarP(&barkEndpoint, "endpoint", "b", "http://127.0.0.1:8080/push", "bark server endpoint")
 
 	// Here you will define your flags and configuration settings.
 
